@@ -1,0 +1,149 @@
+<Window x:Class="SEU_AutoConnect.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
+        Title="SEU 校园网自动连接" 
+        Height="550" 
+        Width="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanMinimize"
+        Closing="Window_Closing">
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+    
+    <Grid>
+        <!-- 系统托盘图标 -->
+        <tb:TaskbarIcon x:Name="TrayIcon"
+                        IconSource="/Resources/ico/网络.ico"
+                        ToolTipText="SEU 校园网自动连接"
+                        TrayMouseDoubleClick="TrayIcon_TrayMouseDoubleClick">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="显示主窗口" Click="ShowWindow_Click"/>
+                    <MenuItem Header="立即连接" Click="ConnectNow_Click"/>
+                    <Separator/>
+                    <MenuItem Header="开机自启动" x:Name="AutoStartMenuItem" IsCheckable="True" 
+                              Checked="AutoStart_Changed" Unchecked="AutoStart_Changed"/>
+                    <Separator/>
+                    <MenuItem Header="退出程序" Click="Exit_Click"/>
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
+        
+        <!-- 主内容 -->
+        <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 标题 -->
+        <TextBlock Grid.Row="0" 
+                   Text="SEU 校园网自动连接" 
+                   FontSize="24" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,20"/>
+        
+        <!-- 配置区域 -->
+        <GroupBox Grid.Row="1" Header="配置信息" Padding="15" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 用户名 -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="用户名:" VerticalAlignment="Center" Margin="0,5"/>
+                <TextBox Grid.Row="0" Grid.Column="1" x:Name="UsernameTextBox" 
+                         Margin="5" Padding="5" VerticalContentAlignment="Center"/>
+                
+                <!-- 密码 -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="密码:" VerticalAlignment="Center" Margin="0,5"/>
+                <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="PasswordBox" 
+                             Margin="5" Padding="5" VerticalContentAlignment="Center"/>
+                
+                <!-- WiFi SSID -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="WiFi名称:" VerticalAlignment="Center" Margin="0,5"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="WifiSsidTextBox" 
+                         Margin="5" Padding="5" VerticalContentAlignment="Center"/>
+                
+                <!-- 检查间隔 -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="检查间隔(秒):" VerticalAlignment="Center" Margin="0,5"/>
+                <TextBox Grid.Row="3" Grid.Column="1" x:Name="CheckIntervalTextBox" 
+                         Margin="5" Padding="5" VerticalContentAlignment="Center"/>
+                
+                <!-- 按钮 -->
+                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" 
+                            Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                    <Button Content="导入配置" Click="ImportConfig_Click" 
+                            Width="90" Height="30" Margin="5,0"/>
+                    <Button Content="保存配置" Click="SaveConfig_Click" 
+                            Width="90" Height="30" Margin="5,0"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+        
+        <!-- 状态区域 -->
+        <GroupBox Grid.Row="2" Header="运行状态" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 状态显示 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="当前状态: " FontWeight="Bold"/>
+                    <TextBlock x:Name="StatusText" Text="未启动" Foreground="Gray"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="当前WiFi: " FontWeight="Bold"/>
+                    <TextBlock x:Name="CurrentWifiText" Text="未连接"/>
+                </StackPanel>
+                
+                <!-- 日志 -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <TextBox x:Name="LogTextBox" 
+                             IsReadOnly="True" 
+                             TextWrapping="Wrap" 
+                             VerticalScrollBarVisibility="Auto"
+                             Background="#F5F5F5"
+                             FontFamily="Consolas"
+                             FontSize="11"
+                             Padding="5"/>
+                </ScrollViewer>
+            </Grid>
+        </GroupBox>
+        
+        <!-- 控制按钮 -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+            <Button x:Name="StartButton" Content="启动服务" Click="StartService_Click" 
+                    Width="120" Height="40" Margin="10,0" FontSize="14" FontWeight="Bold"/>
+            <Button x:Name="StopButton" Content="停止服务" Click="StopService_Click" 
+                    Width="120" Height="40" Margin="10,0" FontSize="14" FontWeight="Bold" IsEnabled="False"/>
+            <Button Content="清空日志" Click="ClearLog_Click" 
+                    Width="120" Height="40" Margin="10,0" FontSize="14"/>
+        </StackPanel>
+        
+        <!-- 版权信息 -->
+        <TextBlock Grid.Row="4" Text="© 2026 SEU-AutoConnect | 适用于Windows平台" 
+                   HorizontalAlignment="Center" Margin="0,15,0,0" 
+                   Foreground="Gray" FontSize="11"/>
+        </Grid>
+    </Grid>
+</Window>
