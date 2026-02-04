@@ -36,6 +36,12 @@ namespace SEU_AutoConnect
         
         [JsonProperty("max_retry")]
         public int MaxRetry { get; set; } = 3;
+
+        [JsonProperty("auto_start_service")]
+        public bool AutoStartService { get; set; } = false;
+
+        [JsonProperty("start_minimized")]
+        public bool StartMinimized { get; set; } = false;
     }
     
     public class ConfigManager
@@ -77,7 +83,9 @@ namespace SEU_AutoConnect
                         WifiSsid = jObject["wifi_ssid"]?.ToString() ?? "SEU-WLAN",
                         CheckInterval = jObject["check_interval"]?.ToObject<int>() ?? 5,
                         ReconnectDelay = jObject["reconnect_delay"]?.ToObject<int>() ?? 3,
-                        MaxRetry = jObject["max_retry"]?.ToObject<int>() ?? 3
+                        MaxRetry = jObject["max_retry"]?.ToObject<int>() ?? 3,
+                        AutoStartService = jObject["auto_start_service"]?.ToObject<bool>() ?? false,
+                        StartMinimized = jObject["start_minimized"]?.ToObject<bool>() ?? false
                     };
                 }
                 else
@@ -131,7 +139,9 @@ namespace SEU_AutoConnect
                         WifiSsid = jObject["wifi_ssid"]?.ToString() ?? "SEU-WLAN",
                         CheckInterval = jObject["check_interval"]?.ToObject<int>() ?? 5,
                         ReconnectDelay = jObject["reconnect_delay"]?.ToObject<int>() ?? 3,
-                        MaxRetry = jObject["max_retry"]?.ToObject<int>() ?? 3
+                        MaxRetry = jObject["max_retry"]?.ToObject<int>() ?? 3,
+                        AutoStartService = jObject["auto_start_service"]?.ToObject<bool>() ?? false,
+                        StartMinimized = jObject["start_minimized"]?.ToObject<bool>() ?? false
                     };
                 }
                 else

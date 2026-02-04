@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace SEU_AutoConnect
@@ -14,6 +16,8 @@ namespace SEU_AutoConnect
         private readonly NetworkService _networkService;
         private CancellationTokenSource? _cancellationTokenSource;
         private bool _isRunning = false;
+        private bool _isExiting = false;
+        private bool _isUpdatingStartupOptions = false;
         
         public MainWindow()
         {
@@ -41,6 +45,7 @@ namespace SEU_AutoConnect
                 PasswordBox.Password = config.Password ?? "";
                 WifiSsidTextBox.Text = config.WifiSsid;
                 CheckIntervalTextBox.Text = config.CheckInterval.ToString();
+                UpdateStartupOptionsUI(config);
                 LogMessage("已加载配置文件");
             }
             else
@@ -48,6 +53,7 @@ namespace SEU_AutoConnect
                 // 使用默认值
                 WifiSsidTextBox.Text = "SEU-WLAN";
                 CheckIntervalTextBox.Text = "5";
+                UpdateStartupOptionsUI(new Config());
                 LogMessage("使用默认配置");
             }
         }
@@ -61,7 +67,9 @@ namespace SEU_AutoConnect
                     Username = UsernameTextBox.Text.Trim(),
                     Password = PasswordBox.Password,
                     WifiSsid = WifiSsidTextBox.Text.Trim(),
-                    CheckInterval = int.TryParse(CheckIntervalTextBox.Text, out int interval) ? interval : 5
+                    CheckInterval = int.TryParse(CheckIntervalTextBox.Text, out int interval) ? interval : 5,
+                    StartMinimized = StartMinimizedCheckBox.IsChecked == true,
+                    AutoStartService = AutoStartServiceCheckBox.IsChecked == true
                 };
                 
                 if (string.IsNullOrEmpty(config.Username) || string.IsNullOrEmpty(config.Password))
@@ -113,7 +121,7 @@ namespace SEU_AutoConnect
             }
         }
         
-        private async void StartService_Click(object sender, RoutedEventArgs e)
+        private void StartService_Click(object sender, RoutedEventArgs e)
         {
             if (_isRunning) return;
             
@@ -129,21 +137,12 @@ namespace SEU_AutoConnect
                 Username = UsernameTextBox.Text.Trim(),
                 Password = PasswordBox.Password,
                 WifiSsid = WifiSsidTextBox.Text.Trim(),
-                CheckInterval = int.TryParse(CheckIntervalTextBox.Text, out int interval) ? interval : 5
+                CheckInterval = int.TryParse(CheckIntervalTextBox.Text, out int interval) ? interval : 5,
+                StartMinimized = StartMinimizedCheckBox.IsChecked == true,
+                AutoStartService = AutoStartServiceCheckBox.IsChecked == true
             };
-            
-            _isRunning = true;
-            StartButton.IsEnabled = false;
-            StopButton.IsEnabled = true;
-            StatusText.Text = "运行中";
-            StatusText.Foreground = System.Windows.Media.Brushes.Green;
-            
-            _cancellationTokenSource = new CancellationTokenSource();
-            
-            LogMessage("服务已启动，开始监控网络状态...");
-            TrayIcon.ShowBalloonTip("SEU-AutoConnect", "服务已启动", Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
-            
-            await Task.Run(() => RunServiceLoop(config, _cancellationTokenSource.Token));
+
+            StartServiceInternal(config, showBalloon: true);
         }
         
         private void StopService_Click(object sender, RoutedEventArgs e)
@@ -175,7 +174,7 @@ namespace SEU_AutoConnect
             await Task.Run(() => _networkService.ConnectAndAuthenticate(config, LogMessage));
         }
         
-        private async void RunServiceLoop(Config config, CancellationToken token)
+        private async Task RunServiceLoop(Config config, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -208,6 +207,7 @@ namespace SEU_AutoConnect
         
         private void LogMessage(string message, bool isError = false)
         {
+            LogManager.Write(message, isError);
             Dispatcher.Invoke(() =>
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss");
@@ -243,17 +243,33 @@ namespace SEU_AutoConnect
         
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
+            _isExiting = true;
             _cancellationTokenSource?.Cancel();
-            TrayIcon.Dispose();
-            Application.Current.Shutdown();
+
+            if (TrayIcon.ContextMenu != null)
+            {
+                TrayIcon.ContextMenu.IsOpen = false;
+                TrayIcon.ContextMenu.Visibility = Visibility.Collapsed;
+            }
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TrayIcon.Dispose();
+                Close();
+                Application.Current.Shutdown();
+            }), DispatcherPriority.Background);
         }
         
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (_isExiting)
+            {
+                return;
+            }
+
             // 最小化到托盘而不是关闭
             e.Cancel = true;
             Hide();
-            TrayIcon.ShowBalloonTip("SEU-AutoConnect", "程序已最小化到系统托盘", Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
         }
         
         private void TrayIcon_TrayMouseDoubleClick(object sender, RoutedEventArgs e)
@@ -261,6 +277,139 @@ namespace SEU_AutoConnect
             Show();
             WindowState = WindowState.Normal;
             Activate();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            var config = _configManager.LoadConfig();
+            if (config == null)
+            {
+                return;
+            }
+
+            UpdateStartupOptionsUI(config);
+
+            if (config.StartMinimized)
+            {
+                WindowState = WindowState.Minimized;
+                Hide();
+            }
+
+            if (config.AutoStartService)
+            {
+                if (!string.IsNullOrEmpty(config.Username) && !string.IsNullOrEmpty(config.Password))
+                {
+                    StartServiceInternal(config, showBalloon: !config.StartMinimized);
+                }
+                else
+                {
+                    LogMessage("未配置用户名或密码，自动启动服务已跳过", true);
+                }
+            }
+        }
+
+        private void StartServiceInternal(Config config, bool showBalloon)
+        {
+            if (_isRunning) return;
+
+            _isRunning = true;
+            StartButton.IsEnabled = false;
+            StopButton.IsEnabled = true;
+            StatusText.Text = "运行中";
+            StatusText.Foreground = System.Windows.Media.Brushes.Green;
+
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            LogMessage("服务已启动，开始监控网络状态...");
+            if (showBalloon)
+            {
+                TrayIcon.ShowBalloonTip("SEU-AutoConnect", "服务已启动", Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+            }
+
+            _ = RunServiceLoop(config, _cancellationTokenSource.Token);
+        }
+
+        private void UpdateStartupOptionsUI(Config config)
+        {
+            _isUpdatingStartupOptions = true;
+            try
+            {
+                StartMinimizedCheckBox.IsChecked = config.StartMinimized;
+                AutoStartServiceCheckBox.IsChecked = config.AutoStartService;
+
+                StartMinimizedMenuItem.IsChecked = config.StartMinimized;
+                AutoStartServiceMenuItem.IsChecked = config.AutoStartService;
+            }
+            finally
+            {
+                _isUpdatingStartupOptions = false;
+            }
+        }
+
+        private void StartupOption_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingStartupOptions)
+            {
+                return;
+            }
+
+            _isUpdatingStartupOptions = true;
+            try
+            {
+                bool startMinimized = sender == StartMinimizedMenuItem
+                    ? StartMinimizedMenuItem.IsChecked == true
+                    : StartMinimizedCheckBox.IsChecked == true;
+
+                bool autoStartService = sender == AutoStartServiceMenuItem
+                    ? AutoStartServiceMenuItem.IsChecked == true
+                    : AutoStartServiceCheckBox.IsChecked == true;
+
+                StartMinimizedCheckBox.IsChecked = startMinimized;
+                StartMinimizedMenuItem.IsChecked = startMinimized;
+
+                AutoStartServiceCheckBox.IsChecked = autoStartService;
+                AutoStartServiceMenuItem.IsChecked = autoStartService;
+
+                SaveStartupOptions(startMinimized, autoStartService);
+            }
+            finally
+            {
+                _isUpdatingStartupOptions = false;
+            }
+        }
+
+        private void SaveStartupOptions(bool startMinimized, bool autoStartService)
+        {
+            try
+            {
+                var config = _configManager.LoadConfig() ?? new Config();
+                config.StartMinimized = startMinimized;
+                config.AutoStartService = autoStartService;
+                _configManager.SaveConfig(config);
+                LogMessage("启动选项已更新");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"启动选项保存失败: {ex.Message}", true);
+            }
+        }
+
+        private void ViewLog_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var logPath = LogManager.GetCurrentLogFilePath();
+                LogManager.EnsureLogFileExists();
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = logPath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"打开日志失败: {ex.Message}", true);
+            }
         }
     }
 }

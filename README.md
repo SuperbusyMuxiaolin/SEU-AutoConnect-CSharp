@@ -195,6 +195,8 @@ dotnet publish -c Release -r win-x64 --self-contained true `
 | check_interval | 检查间隔（秒） | 5 |
 | reconnect_delay | 重连延迟（秒） | 3 |
 | max_retry | 最大重试次数 | 3 |
+| auto_start_service | 开机自启后自动启动服务 | false |
+| start_minimized | 静默启动到托盘 | false |
 
 ---
 

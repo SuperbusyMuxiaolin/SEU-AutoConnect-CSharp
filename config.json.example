@@ -8,5 +8,7 @@
   "signed_in_title": "注销页",
   "check_interval": 5,
   "reconnect_delay": 3,
-  "max_retry": 3
+  "max_retry": 3,
+  "auto_start_service": false,
+  "start_minimized": false
 }
