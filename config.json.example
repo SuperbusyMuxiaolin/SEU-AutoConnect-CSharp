@@ -6,6 +6,7 @@
   "not_sign_in_title": "上网登录页",
   "result_return": "\"result\":\"1\"",
   "signed_in_title": "注销页",
+  "login_request_url_template": "https://w.seu.edu.cn:801/eportal/?c=Portal&a=login&callback=dr1003&login_method=1&user_account=%2C0%2C{username}&user_password={password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=SPL_NetEngine8000F8&jsVersion=3.3.2&v=3080",
   "check_interval": 5,
   "reconnect_delay": 3,
   "max_retry": 3,

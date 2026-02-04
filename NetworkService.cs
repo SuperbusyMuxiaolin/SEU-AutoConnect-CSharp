@@ -214,11 +214,14 @@ namespace SEU_AutoConnect
                 // 需要登录
                 if (content.Contains(config.NotSignInTitle))
                 {
-                    string loginUrl = $"https://w.seu.edu.cn:801/eportal/?c=Portal&a=login&callback=dr1003&login_method=1" +
-                                     $"&user_account=%2C0%2C{config.Username}" +
-                                     $"&user_password={config.Password}" +
-                                     $"&wlan_user_ip={localIp}&wlan_user_ipv6=&wlan_user_mac=000000000000" +
-                                     $"&wlan_ac_ip=&wlan_ac_name=SPL_NetEngine8000F8&jsVersion=3.3.2&v=3080";
+                    var template = string.IsNullOrWhiteSpace(config.LoginRequestUrlTemplate)
+                        ? "https://w.seu.edu.cn:801/eportal/?c=Portal&a=login&callback=dr1003&login_method=1&user_account=%2C0%2C{username}&user_password={password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=SPL_NetEngine8000F8&jsVersion=3.3.2&v=3080"
+                        : config.LoginRequestUrlTemplate;
+
+                    string loginUrl = template
+                        .Replace("{username}", config.Username ?? string.Empty)
+                        .Replace("{password}", config.Password ?? string.Empty)
+                        .Replace("{local_ip}", localIp);
                     
                     var loginResponse = await _httpClient.GetAsync(loginUrl);
                     var loginContent = await loginResponse.Content.ReadAsStringAsync();

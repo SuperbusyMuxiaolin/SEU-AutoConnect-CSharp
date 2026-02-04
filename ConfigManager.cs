@@ -27,6 +27,9 @@ namespace SEU_AutoConnect
         
         [JsonProperty("signed_in_title")]
         public string SignedInTitle { get; set; } = "注销页";
+
+        [JsonProperty("login_request_url_template")]
+        public string LoginRequestUrlTemplate { get; set; } = "https://w.seu.edu.cn:801/eportal/?c=Portal&a=login&callback=dr1003&login_method=1&user_account=%2C0%2C{username}&user_password={password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=SPL_NetEngine8000F8&jsVersion=3.3.2&v=3080";
         
         [JsonProperty("check_interval")]
         public int CheckInterval { get; set; } = 5;
@@ -80,6 +83,9 @@ namespace SEU_AutoConnect
                         NotSignInTitle = seuObj?["not_sign_in_title"]?.ToString() ?? "上网登录页",
                         ResultReturn = seuObj?["result_return"]?.ToString() ?? "\"result\":\"1\"",
                         SignedInTitle = seuObj?["signed_in_title"]?.ToString() ?? "注销页",
+                        LoginRequestUrlTemplate = seuObj?["login_request_url_template"]?.ToString()
+                            ?? jObject["login_request_url_template"]?.ToString()
+                            ?? "https://w.seu.edu.cn:801/eportal/?c=Portal&a=login&callback=dr1003&login_method=1&user_account=%2C0%2C{username}&user_password={password}&wlan_user_ip={local_ip}&wlan_user_ipv6=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=SPL_NetEngine8000F8&jsVersion=3.3.2&v=3080",
                         WifiSsid = jObject["wifi_ssid"]?.ToString() ?? "SEU-WLAN",
                         CheckInterval = jObject["check_interval"]?.ToObject<int>() ?? 5,
                         ReconnectDelay = jObject["reconnect_delay"]?.ToObject<int>() ?? 3,

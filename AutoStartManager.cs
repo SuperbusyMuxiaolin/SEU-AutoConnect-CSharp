@@ -43,7 +43,7 @@ namespace SEU_AutoConnect
                     if (string.IsNullOrEmpty(exePath))
                         return false;
                     
-                    key.SetValue(AppName, $"\"{exePath}\"");
+                    key.SetValue(AppName, $"\"{exePath}\" --autostart");
                 }
                 else
                 {

@@ -289,17 +289,25 @@ namespace SEU_AutoConnect
 
             UpdateStartupOptionsUI(config);
 
-            if (config.StartMinimized)
+            bool isAutoStartLaunch = App.IsAutoStartLaunch;
+
+            if (isAutoStartLaunch)
             {
                 WindowState = WindowState.Minimized;
                 Hide();
+            }
+            else
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
             }
 
             if (config.AutoStartService)
             {
                 if (!string.IsNullOrEmpty(config.Username) && !string.IsNullOrEmpty(config.Password))
                 {
-                    StartServiceInternal(config, showBalloon: !config.StartMinimized);
+                    StartServiceInternal(config, showBalloon: !isAutoStartLaunch);
                 }
                 else
                 {

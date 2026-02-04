@@ -7,9 +7,12 @@ namespace SEU_AutoConnect
     public partial class App : Application
     {
         private static Mutex? _mutex;
+        public static bool IsAutoStartLaunch { get; private set; }
         
         protected override void OnStartup(StartupEventArgs e)
         {
+            IsAutoStartLaunch = e.Args != null && Array.Exists(e.Args, arg => string.Equals(arg, "--autostart", StringComparison.OrdinalIgnoreCase));
+
             // 单实例检查
             _mutex = new Mutex(true, "SEU-AutoConnect-Mutex-CSharp", out bool createdNew);
             
