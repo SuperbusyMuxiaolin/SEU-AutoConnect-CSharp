@@ -77,8 +77,6 @@
 | check_interval | 轮询检查间隔（秒） | 5 |
 | reconnect_delay | 断线后等待重连时间（秒） | 3 |
 | max_retry | 单次循环最大重试次数 | 3 |
-| auto_start_service | 启动后是否自动开始服务 | false |
-| start_minimized | 启动后是否最小化到托盘 | false |
 
 ### 2、导入配置文件并启动
 
