@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading;
 using System.Windows;
 
@@ -11,6 +12,9 @@ namespace SEU_AutoConnect
         
         protected override void OnStartup(StartupEventArgs e)
         {
+            // 注册编码提供程序以支持GBK等编码
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            
             IsAutoStartLaunch = e.Args != null && Array.Exists(e.Args, arg => string.Equals(arg, "--autostart", StringComparison.OrdinalIgnoreCase));
 
             // 单实例检查

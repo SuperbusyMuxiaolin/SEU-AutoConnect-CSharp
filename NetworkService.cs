@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ManagedNativeWifi;
 
@@ -13,6 +14,7 @@ namespace SEU_AutoConnect
     public class NetworkService
     {
         private readonly HttpClient _httpClient;
+        private static readonly Regex _metaCharsetRegex = new Regex("charset=([\\w-]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         
         public NetworkService()
         {
@@ -188,6 +190,21 @@ namespace SEU_AutoConnect
             }
         }
         
+        private static async Task<string> ReadContentAsStringSafe(HttpResponseMessage response, params string?[] keywords)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+
+            try
+            {
+                // 使用GBK编码（GB2312的超集，兼容性更好）
+                return Encoding.GetEncoding("GBK").GetString(bytes);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         /// <summary>
         /// 进行校园网认证
         /// </summary>
@@ -203,7 +220,7 @@ namespace SEU_AutoConnect
                 
                 // 检查登录状态
                 var response = await _httpClient.GetAsync(config.LoginIp);
-                var content = await response.Content.ReadAsStringAsync();
+                var content = await ReadContentAsStringSafe(response, config.SignedInTitle, config.NotSignInTitle);
                 
                 // 已登录
                 if (content.Contains(config.SignedInTitle))
@@ -224,7 +241,7 @@ namespace SEU_AutoConnect
                         .Replace("{local_ip}", localIp);
                     
                     var loginResponse = await _httpClient.GetAsync(loginUrl);
-                    var loginContent = await loginResponse.Content.ReadAsStringAsync();
+                    var loginContent = await ReadContentAsStringSafe(loginResponse, config.ResultReturn, config.SignedInTitle, config.NotSignInTitle);
                     
                     if (loginContent.Contains(config.ResultReturn))
                     {
